@@ -1,0 +1,8 @@
+{
+	"python.linting.flake8Enabled": true,
+	"python.linting.enabled": true,
+	"editor.insertSpaces": false,
+	"editor.stickyTabStops": true,
+	"terminal.integrated.tabStopWidth": 4,
+	"workbench.editor.showTabs": true
+}
