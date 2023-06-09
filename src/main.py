@@ -57,8 +57,8 @@ def create_html(map, data="POPESTIMATE2018", open=True):
         # outer_width=950,
         width=950,
         # min_width=950,
-        x_range=(0, 20),
-        y_range =(0, 20),
+        x_range=(-182, -59),
+        y_range=(14, 74),
         toolbar_location='below',
         tools="pan, wheel_zoom, box_zoom, reset")
     fig.xgrid.grid_line_color = None
