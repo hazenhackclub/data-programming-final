@@ -1,8 +1,9 @@
 {
-	"python.linting.flake8Enabled": true,
-	"python.linting.enabled": true,
-	"editor.insertSpaces": false,
-	"editor.stickyTabStops": true,
-	"terminal.integrated.tabStopWidth": 4,
-	"workbench.editor.showTabs": true
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.stickyTabStops": true,
+    "terminal.integrated.tabStopWidth": 4,
+    "workbench.editor.showTabs": true
 }
