@@ -4,14 +4,14 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from urllib.request import urlopen
 import json
-from bokeh.io import show
+from bokeh.io import show, curdoc
 from bokeh.models import (CDSView, ColorBar, ColumnDataSource,
                           CustomJS, CustomJSFilter, 
                           GeoJSONDataSource, HoverTool,
                           LinearColorMapper, Slider, Range1d)
 from bokeh.layouts import column, row
-from bokeh.palettes import brewer
-from bokeh.plotting import figure
+from bokeh.palettes import brewer, varying_alpha_palette, interp_palette
+from bokeh.plotting import figure, output_file
 import plotly.express as px
 import plotly.io as pio
 
@@ -41,51 +41,124 @@ def create_graph(map, name="Plot", data="POPESTIMATE2018"):
     plt.axis([-182, -59, 14, 74])  # other territories included
     plt.savefig(name + '.png', dpi=700)
 
+def reasonablize_number(max, length=6):
+    table = []
+    for num in range(0, max, max / length):
+        rounded = round(num, 1 - len(str(num)))
+        table.append((rounded, str(rounded)))
+    pass
+
 
 def create_html(map, data="POPESTIMATE2018", open=True):
 
     geosource = GeoJSONDataSource(geojson=map.to_json())
 
+    max_data = map[data].max()
+
+    s = 0.8
     # Create figure object.
     fig = figure(
-        title="Honestly Don't Know What Goes Here",
-        # plot_height=600,
-        # outer_height=600,
-        height=600,
-        # min_height=600,
-        # plot_width=950,
-        # outer_width=950,
-        width=950,
-        # min_width=950,
-        x_range=(-182, -59),
-        y_range=(14, 74),
-        toolbar_location='below',
-        tools="pan, wheel_zoom, box_zoom, reset")
+        # sizing_mode='stretch_both',
+        # id="map_fig",
+        height=int(s * 600),
+        width=int(s * 950),
+        # title="Honestly Don't Know What Goes Here",
+        # x_range=(-182, -59),
+        # y_range=(14, 74),
+        x_range=(-128, -64),
+        y_range=(22, 52),
+        # toolbar_location='below',
+        tools="pan, wheel_zoom, box_zoom, reset"
+    )
+
+    # Define color palettes
+    palette_blue = brewer['Blues'][8]
+    # palette_blue = palette_blue[::-1]  # reverse the order of the color palette
+    palette = interp_palette(palette_blue, 256)
+    # palette = varying_alpha_palette('#3a81ba', 4, 1, 0.2)
+    # palette = brewer['BuGn'][8]
+    # palette = palette[::-1]  # reverse order of colors so higher values have darker colors
+    # Instantiate LinearColorMapper that linearly maps numbers in a range, into a sequence of colors.
+    color_mapper = LinearColorMapper(palette=palette, low=0, high=max_data)
+
+    tick_labels = {
+        0: '0',
+        2_000_000: '2,000,000',
+        4_000_000: '4,000,000',
+        6_000_000: '6,000,000',
+        8_000_000: '8,000,000',
+        10_000_000: '10,000,000',
+        15_000_000: '15,000,000',
+        20_000_000: '20,000,000',
+        25_000_000: '25,000,000',
+        30_000_000: '30,000,000',
+        35_000_000: '35,000,000',
+        40_000_000: '40,000,000+'
+    }
+
+    color_bar = ColorBar(
+        color_mapper=color_mapper,
+        label_standoff=8,
+        width=500,
+        height=20,
+        location=(0, 0),
+        background_fill_alpha=1,
+        background_fill_color='#121212',
+        orientation='horizontal',
+        major_label_overrides=tick_labels
+    )
+
     fig.xgrid.grid_line_color = None
     fig.ygrid.grid_line_color = None
+
+    fig.border_fill_color = '#121212'
+
     # Add patch renderer to figure.
-    states = fig.patches(
+    counties = fig.patches(
         'xs',
         'ys',
         source=geosource,
-        fill_color=None,
+        fill_color={'field': data, 'transform': color_mapper},
         line_color='gray',
         line_width=0.25,
         fill_alpha=1
     )
 
+    curdoc().theme = 'dark_minimal'
+
     # Create hover tool
-    fig.add_tools(HoverTool(renderers=[states], tooltips=[('State', '@NAME'), ('Population', '@' + data)]))
+    fig.add_tools(
+        HoverTool(
+            renderers=[counties],
+            tooltips=[
+                ('State', '@STATEFP'),
+                ('County', '@NAME'),
+                ('Population', '@POPESTIMATE2018'),
+                ('Crimes per 1,000 People', '@Crimes_per_thousand')
+            ]
+        )
+    )
+
+    fig.add_layout(color_bar, 'below')
+
+    output_file("index.html")
 
     if open:
         show(fig)
+
 
 def convert_columns_to_floats(data, columns=[]):
     for col in columns:
         data[col] = data[col].str.replace(',', '').astype(float)
 
 
-def main2():
+# def main():
+    # print(reasonablize_number(10_000_000, 6))
+    # num = 0
+    # print(round(num, 1 - len(str(num))))
+
+
+def main_small():
     print('Opening Data')
     washington_map = import_map('./src/data/washington.json')
     washington_map.head()
@@ -155,7 +228,7 @@ def main():
     print('Graphing data')
 
     # create_graph(merged_final, data='STATEFP')
-    create_html(merged_final, open=True)
+    create_html(merged_final, open=True, data='Crimes_per_thousand')
 
     print('Finished.')
 
