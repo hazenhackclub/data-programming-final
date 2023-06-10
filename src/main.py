@@ -1,23 +1,49 @@
 
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from urllib.request import urlopen
 import json
+from jinja2 import Template
+
 from bokeh.io import show, curdoc
-from bokeh.models import (CDSView, ColorBar, ColumnDataSource,
-                          CustomJS, CustomJSFilter, 
+from bokeh.models import (BoxZoomTool, ColorBar, CustomJS, CustomJSFilter,
                           GeoJSONDataSource, HoverTool,
                           LinearColorMapper, Slider, Range1d)
 from bokeh.layouts import column, row
 from bokeh.palettes import brewer, varying_alpha_palette, interp_palette
 from bokeh.plotting import figure, output_file
-import plotly.express as px
-import plotly.io as pio
+from bokeh.embed import components
+from bokeh.resources import INLINE
+from bokeh.util.browser import view
+
+template = Template(
+'''<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Programming Final</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-3.1.1.min.js"></script>
+    {{ script }}
+</head>
+<body>
+    <h1 class="page-title">Data Programming Final</h1>
+    <div class="embed-wrapper">
+        {% for key in div.keys() %}
+            {{ div[key] }}
+        {% endfor %}
+    </div>
+</body>
+</html>
+''')
 
 
-def import_data(filename):
-    return pd.read_csv(filename)
+def import_data(filename, encoding=None):
+    return pd.read_csv(filename) if encoding is None else pd.read_csv(filename, encoding=encoding)
 
 
 def import_map(filename):
@@ -25,8 +51,6 @@ def import_map(filename):
 
 
 def create_graph(map, name="Plot", data="POPESTIMATE2018"):
-    """
-
     """
 
     fig, ax = plt.subplots(1)
@@ -40,24 +64,21 @@ def create_graph(map, name="Plot", data="POPESTIMATE2018"):
     # plt.axis([-128, -64, 22, 52])
     plt.axis([-182, -59, 14, 74])  # other territories included
     plt.savefig(name + '.png', dpi=700)
-
-def reasonablize_number(max, length=6):
-    table = []
-    for num in range(0, max, max / length):
-        rounded = round(num, 1 - len(str(num)))
-        table.append((rounded, str(rounded)))
+    """
     pass
 
 
-def create_html(map, data="POPESTIMATE2018", open=True):
+def create_html(map, filename="index", data="POPESTIMATE2018", open_file=True):
 
     geosource = GeoJSONDataSource(geojson=map.to_json())
 
     max_data = map[data].max()
 
-    s = 0.8
+    filename += '.html'
+
+    s = 0.75
     # Create figure object.
-    fig = figure(
+    plot1 = figure(
         # sizing_mode='stretch_both',
         # id="map_fig",
         height=int(s * 600),
@@ -68,17 +89,14 @@ def create_html(map, data="POPESTIMATE2018", open=True):
         x_range=(-128, -64),
         y_range=(22, 52),
         # toolbar_location='below',
-        tools="pan, wheel_zoom, box_zoom, reset"
+        tools="pan, wheel_zoom, reset",
+        active_scroll="wheel_zoom"
     )
 
     # Define color palettes
     palette_blue = brewer['Blues'][8]
     # palette_blue = palette_blue[::-1]  # reverse the order of the color palette
     palette = interp_palette(palette_blue, 256)
-    # palette = varying_alpha_palette('#3a81ba', 4, 1, 0.2)
-    # palette = brewer['BuGn'][8]
-    # palette = palette[::-1]  # reverse order of colors so higher values have darker colors
-    # Instantiate LinearColorMapper that linearly maps numbers in a range, into a sequence of colors.
     color_mapper = LinearColorMapper(palette=palette, low=0, high=max_data)
 
     tick_labels = {
@@ -108,13 +126,13 @@ def create_html(map, data="POPESTIMATE2018", open=True):
         major_label_overrides=tick_labels
     )
 
-    fig.xgrid.grid_line_color = None
-    fig.ygrid.grid_line_color = None
+    plot1.xgrid.grid_line_color = None
+    plot1.ygrid.grid_line_color = None
 
-    fig.border_fill_color = '#121212'
+    plot1.border_fill_color = '#121212'
 
     # Add patch renderer to figure.
-    counties = fig.patches(
+    counties = plot1.patches(
         'xs',
         'ys',
         source=geosource,
@@ -124,10 +142,8 @@ def create_html(map, data="POPESTIMATE2018", open=True):
         fill_alpha=1
     )
 
-    curdoc().theme = 'dark_minimal'
-
-    # Create hover tool
-    fig.add_tools(
+    # Add separate tools and layouts
+    plot1.add_tools(
         HoverTool(
             renderers=[counties],
             tooltips=[
@@ -136,26 +152,38 @@ def create_html(map, data="POPESTIMATE2018", open=True):
                 ('Population', '@POPESTIMATE2018'),
                 ('Crimes per 1,000 People', '@Crimes_per_thousand')
             ]
-        )
+        ),
+        BoxZoomTool(match_aspect=True)
     )
 
-    fig.add_layout(color_bar, 'below')
+    plot1.add_layout(color_bar, 'below')
 
-    output_file("index.html")
+    plots = dict(Crimes=plot1)
 
-    if open:
-        show(fig)
+    doc = curdoc()
+    doc.theme = 'dark_minimal'
+    doc.add_root(plot1)
+
+    script, div = components(plots)
+
+    resources = INLINE.render()
+
+    html = template.render(
+        resources=resources,
+        script=script,
+        div=div
+    )
+
+    with open(filename, mode="w", encoding="utf-8") as file:
+        file.write(html)
+
+    if open_file:
+        view(filename)
 
 
 def convert_columns_to_floats(data, columns=[]):
     for col in columns:
         data[col] = data[col].str.replace(',', '').astype(float)
-
-
-# def main():
-    # print(reasonablize_number(10_000_000, 6))
-    # num = 0
-    # print(round(num, 1 - len(str(num))))
 
 
 def main_small():
@@ -172,8 +200,8 @@ def main():
     # washington_map = import_map('./src/data/washington.json')
     county_map = import_map('./src/data/5m-US-counties.json')
     crime_data = import_data('./src/data/US_Offense_Type_by_Agency_2018-trim.csv')
+    pop_data = import_data('./src/data/popest2018-trim.csv', encoding='latin-1')
     fips_codes = import_data('./src/data/statefipscodes.csv')
-    pop_data = pd.read_csv('./src/data/popest2018-trim.csv', encoding='latin-1')
 
     # Regularize the data
     convert_columns_to_floats(crime_data, ['Total Offenses', 'Population1'])
@@ -198,40 +226,16 @@ def main():
 
     merged_final = merged_map.merge(merged_data, left_on='state_county', right_on='state_county', how='left')
 
-    # pandas.set_option('display.max_rows', 500)
-    # pandas.set_option('display.max_columns', 500)
-    # print('merged_final', merged_final)
-
     # Find the number of crimes per 1,000 people by coutny
     merged_final['Crimes_per_thousand'] = 1000 * merged_final['Total Offenses'] / merged_final['POPESTIMATE2018']
 
-    """
-    county_map columns: ['id', 'STATEFP', 'COUNTYFP', 'COUNTYNS', 'AFFGEOID', 'GEOID', 'NAME', 'LSAD', 'ALAND', 'AWATER', 'geometry']
-    crime_data columns: ['State', 'Agency Type', 'Agency Name,' 'Population1', 'Total Offenses', ...]
-
-    Info:
-
-    washington_map length: 39
-    county_map length: 3233
-
-    crime_data length: 5962
-        regularized length: 1184
-    pop_data length: 3193
-        regularized length: 3007
-    merged_data length: 6540
-
-    counties: 1184
-
-    ARIZONA Crimes Per Thousand: 47.934547
-    """
-
     print('Graphing data')
 
-    # create_graph(merged_final, data='STATEFP')
-    create_html(merged_final, open=True, data='Crimes_per_thousand')
+    create_html(merged_final, filename='index', open_file=True, data='Crimes_per_thousand')
 
     print('Finished.')
 
 
 if __name__ == "__main__":
     main()
+    # main_small()

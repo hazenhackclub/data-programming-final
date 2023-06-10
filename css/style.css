@@ -28,7 +28,13 @@ body {
 
 .bk-Figure {
     aspect-ratio: 3 / 2;
-    max-height: 800px;
     width: auto;
     height: auto;
+    max-height: 1000px;
+}
+
+.embed-wrapper {
+    /* display: flex;
+    justify-content: space-evenly; */
+    margin: auto;
 }
