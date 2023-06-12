@@ -1,7 +1,11 @@
 
 # Our Data Programming Final Project
 
+This is our CSE163 Final Project by Sam DePoule, Quinn Gifford, and Ivan Petrenko
+
 ## Setup:
+
+Python version: follow install instructions [here](https://cse163.github.io/book/module-1-introduction-to-python/lesson-1-first-lesson/dev-setup/index.html) for the CSE163 python setup and requirements.
 
 Python install requirements (using pip):
 | Req | Command |
@@ -9,27 +13,9 @@ Python install requirements (using pip):
 | [Bokeh](http://bokeh.org/) | `pip install bokeh` |
 | [Plotly](https://plotly.com/) | `pip install plotly` |
 
-<details>
+## Graphing
 
-<summary>Resources</summary>
+To update the graph, simply run the [main.py](https://github.com/hazenhackclub/data-programming-final/blob/main/src/main.py) file found under [src](https://github.com/hazenhackclub/data-programming-final/tree/main/src).
+<p></p>
 
-## Maps
-
-Downloaded US county maps from here (countries - united states - higher quality 5m):
-	https://github.com/deldersveld/topojson/blob/master/countries/united-states/higher-quality-5m/5m-US-counties.json
-
-County Pops: https://www2.census.gov/programs-surveys/popest/datasets/2010-2018/counties/totals/
-
-Interactive map?: https://plotly.com/py1thon/mapbox-county-choropleth/
-
-
-## Other
-
-Coloring? https://gis.stackexchange.com/questions/336437/colorizing-polygons-based-on-color-values-in-dataframe-column
-
-https://www.google.com/search?q=geopanda+color+graph+by+value&rlz=1C1RXQR_enUS1044US1044&sxsrf=APwXEdcqoaEtI5HeCf3f0ZJU-xB-Pfg9HQ%3A1685994647543&ei=lzx-ZNHrIJqy0PEPvOOHkAs&ved=0ahUKEwiRk73A86z_AhUaGTQIHbzxAbIQ4dUDCBA&uact=5&oq=geopanda+color+graph+by+value&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAzIFCAAQogQyBQgAEKIEMgUIABCiBDIFCAAQogQ6CggAEEcQ1gQQsANKBAhBGABQ6QJY6QJgpQRoAXABeACAAVaIAVaSAQExmAEAoAEBuAEDwAEByAEI&sclient=gws-wiz-serp
-
-
-Interactive Plots bokeh: https://docs.bokeh.org/en/latest/docs/gallery.html
-
-</details>
+To view the graph view [index.html](https://github.com/hazenhackclub/data-programming-final/blob/main/index.html) in a web browser.
