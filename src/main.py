@@ -1,6 +1,7 @@
 
 import pandas as pd
 import geopandas as gpd
+import numpy as np
 # import matplotlib.pyplot as plt
 from urllib.request import urlopen
 import json
@@ -8,7 +9,7 @@ from jinja2 import Template
 
 from bokeh.io import show, curdoc
 from bokeh.models import (BoxZoomTool, ColorBar, CustomJS, CustomJSFilter,
-                          GeoJSONDataSource, HoverTool,
+                          GeoJSONDataSource, HoverTool, MultiLine, ColumnDataSource, MultiPolygons,
                           LinearColorMapper, Slider, Range1d)
 from bokeh.layouts import column, row
 from bokeh.palettes import brewer, varying_alpha_palette, interp_palette
@@ -17,8 +18,7 @@ from bokeh.embed import components
 from bokeh.resources import INLINE
 from bokeh.util.browser import view
 
-template = Template(
-'''<!DOCTYPE html>
+template = Template('''<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -147,13 +147,27 @@ def create_html(map, filename="index", data="POPESTIMATE2018", open_file=True):
         HoverTool(
             renderers=[counties],
             tooltips=[
-                ('State', '@STATEFP'),
+                ('State', '@State_x'),
                 ('County', '@NAME'),
                 ('Population', '@POPESTIMATE2018'),
-                ('Crimes per 1,000 People', '@Crimes_per_thousand')
+                ('Crimes/1,000 People', '@CrimesP1000'),
+                ("(Long, Lat)", "($x, $y)")
             ]
         ),
         BoxZoomTool(match_aspect=True)
+    )
+
+    # Add state outlines
+    states_gdf = map.dissolve(by='State_x')
+    states_df = states_gdf.reset_index()
+    geosource = GeoJSONDataSource(geojson=states_df.to_json())
+
+    plot1.patches(
+        'xs', 'ys',
+        fill_alpha=0.1,
+        line_color='#212121',
+        line_width=1,
+        source=geosource
     )
 
     plot1.add_layout(color_bar, 'below')
@@ -217,7 +231,9 @@ def main():
 
     # Combines state and county names for merging
     crime_data['state_county'] = crime_data['State'].str.upper() + '-' + crime_data['Agency Name'].str.upper()
+    crime_data.drop(columns=['State', 'Agency Type', 'Population1'])
     pop_data['state_county'] = pop_data['STNAME'].str.upper() + '-' + pop_data['CTYNAME'].str.upper()
+    pop_data.drop(columns=['CENSUS2010POP', 'ESTIMATESBASE2010'])
     merged_map['state_county'] = merged_map['State'].str.upper() + '-' + merged_map['NAME'].str.upper()
 
     # Merging data
@@ -227,11 +243,15 @@ def main():
     merged_final = merged_map.merge(merged_data, left_on='state_county', right_on='state_county', how='left')
 
     # Find the number of crimes per 1,000 people by coutny
-    merged_final['Crimes_per_thousand'] = 1000 * merged_final['Total Offenses'] / merged_final['POPESTIMATE2018']
+    merged_final['CrimesP1000'] = 1000 * merged_final['Total Offenses'] / merged_final['POPESTIMATE2018']
+
+    # CrimesP1000
+    merged_final = merged_final.replace({-np.nan: None})
+    merged_final = merged_final.replace({np.nan: None})
 
     print('Graphing data')
 
-    create_html(merged_final, filename='index', open_file=True, data='Crimes_per_thousand')
+    create_html(merged_final, filename='index', open_file=True, data='CrimesP1000')
 
     print('Finished.')
 
