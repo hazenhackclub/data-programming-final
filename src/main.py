@@ -245,9 +245,7 @@ def main():
     # Find the number of crimes per 1,000 people by coutny
     merged_final['CrimesP1000'] = 1000 * merged_final['Total Offenses'] / merged_final['POPESTIMATE2018']
 
-    # CrimesP1000
-    merged_final = merged_final.replace({-np.nan: None})
-    merged_final = merged_final.replace({np.nan: None})
+    merged_final['CrimesP1000'] = merged_final['CrimesP1000'].fillna(-1)
 
     print('Graphing data')
 
